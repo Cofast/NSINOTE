@@ -115,7 +115,7 @@ VALUES
 
 INSERT INTO Devoir (idCo, nTrimestre, corrige, coeff)
 VALUES
-	(3, 1, false, 2);
+	(3, 1, null, 2);
 
 INSERT INTO Note (idD, idE)
 VALUES
