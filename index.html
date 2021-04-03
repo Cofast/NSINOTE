@@ -1,0 +1,115 @@
+<DOCTYPE hmtl>
+<html lang="fr">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="stylesheet" href="style/style.css"/>
+		<title>NSINOTE - Login</title>
+	</head>
+	<body>
+		<h1>Connexion</h1>
+		
+		<form method="post" action="index.php">
+			<p>
+				Identifiant<br/>
+				<input type="text" name="identifiant"><br/>
+				
+				Mot de passe<br/>
+				<input type="password" name="password"><br/>
+				
+				<input type="radio" name="type" value="eleve"/><label for="eleve">Eleve</label>
+				<input type="radio" name="type" value="parent"/><label for="parent">Parent</label>
+				<input type="radio" name="type" value="professeur"/><label for="professeur">Professeur</label>
+				<input type="radio" name="type" value="cpe"/><label for="cpe">CPE </label>
+				
+				<br/><input type="submit" value="Connexion">
+			<p>
+		</form>
+		
+		<?php
+		
+			// Le script se lance a chaque actualisation y compris àl'entrée sur le site
+			// donc on verifie que les information du formulaire on bien etaient rempli
+			// sinon on n'execute rien
+			if (isSet($_POST["identifiant"]) & !empty($_POST["identifiant"])
+			  & isSet($_POST["password"]) & !empty($_POST["password"])
+		      & isSet($_POST["type"]) & !empty($_POST["type"])) {
+				  
+				  
+				// Connection a la base de données (j'ai appelé la mienne "database"),
+				// si il n'y a pas eu d'erreur on peut continuer le script
+				$link = mysqli_connect("localhost", "root", "", "database");
+				if ($link) {
+					
+					// On split l'identifiant renseigné par l'utilisateur pour extraire : prenom, nom et id
+					// (les identifiant sont de la forme : prenom.nom.id)
+					// si le tableau renvoyé par la methode explode n'est pas de longueur 3,  l'identifiant est incorrect
+					$infos = explode(".", $_POST["identifiant"]);
+					if (count($infos) != 3) {
+						echo "Identifiant invalide";
+						exit();
+					}
+					
+					// les champs id des tables "eleve", "parent", "professeur" et "cpe" n'ont pas le même nom
+					// donc on creer une variable $id pour ensuite l'inserer dans la requete
+					$id = "";
+					if ($_POST["type"] == "eleve") {
+						$id = "idE";
+					} else if ($_POST["type"] == "parent") {
+						$id = "idPa";
+					} else if ($_POST["type"] == "professeur") {
+						$id = "idPr";
+					} else if ($_POST["type"] == "cpe") {
+						$id = "idCPE";
+					}
+
+					// On creer la requete puis on execute
+					// si $res vaut false, c'est qu'il a eu une erreur, on quitte le script et on affiche l'erreur
+					// lorsque le projet sera fini il faudra sans doute desactivé l'affichage de l'erreur
+					$query = "SELECT prenom, nom, idU FROM " . $_POST["type"] .  " WHERE " . $id . " = " . $infos[2];
+					$res = mysqli_query($link, $query);
+					if (!$res) {
+						echo mysqli_error($link);
+						exit();
+					}
+					
+					// On verifie que le prenom et nom renseignés sont bien coeherent avec l'id renseigner
+					// si ce n'est pas le cas, alors l'identfiant est incorrect
+					$user = mysqli_fetch_array($res);
+					if ($infos[0] == $user["prenom"]
+					  & $infos[1] == $user["nom"]) {
+	
+						// On recuperer maintement le mot de passe correspondant à l'identifiant
+						// Meme procedure qu'avant si la requete renvoie une erreur
+						$query = "SELECT MDP FROM Utilisateur WHERE idU = " . $user["idU"];
+						$res = mysqli_query($link, $query);
+						if (!$res) {
+							echo mysqli_error($link);
+							exit();
+						}
+						
+						// Si le mot de passe correspond alors on redirige l'utilisateur vers l'acceuil
+						// Mes fichiers acceuil sont de la forme : home{type}.html
+						// Si le mot de passe ne correspond pas,  on arrete le script
+						$user = mysqli_fetch_array($res);
+						if ($_POST["password"] == $user["MDP"]) {
+							header("Location: http://localhost/NSINOTE/home" . $_POST["type"] . ".html");
+							exit();
+	
+						} else {						
+							echo "Mot de passe incorrect";
+							exit();
+						}
+		
+					} else {
+						echo "Identifiant incorrect";
+					}
+					
+				} else {
+					echo "Impossible de se connecter à la base de données";
+					exit();
+				}
+			}
+		?>
+
+	</body>
+</html>
